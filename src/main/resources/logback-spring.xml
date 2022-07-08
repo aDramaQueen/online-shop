@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logback Homepage: http://logback.qos.ch/manual/ -->
+<!-- Spring & Logback: https://docs.spring.io/spring-boot/docs/current/reference/html/howto.html#howto-logging -->
+<!-- Spring Boot Variable Translations: https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.logging.custom-log-configuration -->
+<configuration>
+
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+
+    <!-- ========================================== Logback & Spring Boot ========================================== -->
+    <!--  https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.logging.logback-extensions  -->
+    <springProperty scope="context" name="ROOT_LOGGER_LEVEL" source="logging.level.root"/>
+    <springProperty scope="context" name="SPRING_LOGGER_LEVEL" source="logging.level.web" defaultValue="${ROOT_LOGGER_LEVEL}"/>
+    <springProperty scope="context" name="PERSISTENCE_LOGGER_LEVEL" source="logging.level.persistence" defaultValue="${ROOT_LOGGER_LEVEL}"/>
+    <springProperty scope="context" name="CONTROLLER_LOGGER_LEVEL" source="logging.level.controller" defaultValue="${ROOT_LOGGER_LEVEL}"/>
+    <springProperty scope="context" name="SERVICE_LOGGER_LEVEL" source="logging.level.service" defaultValue="${ROOT_LOGGER_LEVEL}"/>
+    <springProperty scope="context" name="READOUT_LOGGER_LEVEL" source="logging.level.readout" defaultValue="${ROOT_LOGGER_LEVEL}"/>
+
+    <!-- ==================== Logback - Appenders: https://logback.qos.ch/manual/appenders.html ==================== -->
+    <appender name="ROOT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/root/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "ROOT-LOGGER" files -->
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SPRING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/spring/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "SPRING-LOGGER" files -->
+            <totalSizeCap>150MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="PERSISTENCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/persistence/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "PERSISTENCE-LOGGER" files -->
+            <totalSizeCap>150MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CONTROLLER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/controller/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "CONTROLLER-LOGGER" files -->
+            <totalSizeCap>150MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SERVICE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/service/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "SERVICE-LOGGER" files -->
+            <totalSizeCap>150MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="READOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START}</cleanHistoryOnStart>
+            <!-- roll over every day -->
+            <fileNamePattern>${LOG_PATH}/readout/%d{yyyy/MM, aux}/%d{dd-MM-yyyy}.log.zip</fileNamePattern>
+            <!-- keep 1 year -->
+            <maxHistory>365</maxHistory>
+            <!-- max size for all "READOUT-LOGGER" files -->
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <springProfile name="development">
+        <!-- Import "Spring Boot" default console logger -->
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="${ROOT_LOGGER_LEVEL}">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="ROOT" />
+        </root>
+        <logger name="org.springframework" level="${SPRING_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="SPRING" />
+        </logger>
+        <logger name="i3de.communication.persistence" level="${PERSISTENCE_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="PERSISTENCE" />
+        </logger>
+        <logger name="i3de.communication.controller" level="${CONTROLLER_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="CONTROLLER" />
+        </logger>
+        <logger name="i3de.communication.service" level="${SERVICE_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="SERVICE" />
+        </logger>
+        <logger name="i3de.communication.readout" level="${READOUT_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="READOUT" />
+        </logger>
+    </springProfile>
+
+    <springProfile name="production">
+        <root level="${ROOT_LOGGER_LEVEL}">
+            <appender-ref ref="ROOT" />
+        </root>
+        <logger name="org.springframework" level="${SPRING_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="SPRING" />
+        </logger>
+        <logger name="i3de.communication.persistence" level="${PERSISTENCE_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="PERSISTENCE" />
+        </logger>
+        <logger name="i3de.communication.controller" level="${CONTROLLER_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="CONTROLLER" />
+        </logger>
+        <logger name="i3de.communication.service" level="${SERVICE_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="SERVICE" />
+        </logger>
+        <logger name="i3de.communication.readout" level="${READOUT_LOGGER_LEVEL}" additivity="false">
+            <appender-ref ref="READOUT" />
+        </logger>
+    </springProfile>
+
+</configuration>

@@ -1,0 +1,25 @@
+<!--/* Thymeleaf tutorial: https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html */-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Base Templates</title>
+    </head>
+    <body>
+
+    <!--/* =================================== CSS: Bootstrap, Bootstrap Icons =================================== */-->
+    <div th:fragment="base-header" th:remove="tag">
+        <meta charset="UTF-8">
+
+        <link th:rel="stylesheet" th:href="@{/css/bootstrap/bootstrap.min.css}"/>
+        <link th:rel="stylesheet" th:href="@{/css/icons/bootstrap-icons.css}"/>
+        <link th:rel="stylesheet" th:href="@{/css/base.css}"/>
+    </div>
+
+    <!--/* ==================================== JavaScript: Sidebar, Bootstrap =================================== */-->
+    <div th:fragment="base-javascripts" th:remove="tag">
+        <script th:src="@{/js/bootstrap/bootstrap.bundle.min.js}"></script>
+    </div>
+
+    </body>
+</html>

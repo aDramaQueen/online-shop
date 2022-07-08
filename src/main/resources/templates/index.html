@@ -1,0 +1,20 @@
+<!--/* Thymeleaf tutorial: https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html */-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Online Shop</title>
+        <meta th:replace="fragments/base.html :: base-header"/>
+        <link th:rel="stylesheet" th:href="@{/css/index.css}"/>
+    </head>
+    <body>
+    <div class="container-fluid">
+        Do your thing...
+    </div>
+    <div th:replace="fragments/base.html :: base-javascripts"></div>
+    <!--/* @see https://www.thymeleaf.org/doc/tutorials/2.1/usingthymeleaf.html#script-inlining-javascript-and-dart */-->
+    <script th:inline="javascript">
+        const info_url = /*[[${info_url}]]*/ undefined;
+    </script>
+    <script th:src="@{/js/index.js}"></script>
+    </body>
+</html>

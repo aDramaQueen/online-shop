@@ -1,0 +1,736 @@
+import com.acme.build.*
+
+import java.nio.charset.StandardCharsets
+import java.time.format.DateTimeFormatter
+
+buildscript {
+	repositories {
+		mavenLocal()
+	}
+	dependencies {
+		// ProGuard - https://www.guardsquare.com/manual/setup/gradle
+		classpath 'com.guardsquare:proguard-gradle:7.1.0'
+		// NOTE: ProGuard & JJWT -> https://github.com/jwtk/jjwt#proguard
+	}
+}
+
+plugins {
+	// ------ Java ------
+	id 'application'
+
+	// ------ Spring ------
+	// @see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/
+	id 'org.springframework.boot' version "${springBootVersion}"
+	// @see https://docs.spring.io/dependency-management-plugin/docs/current/reference/html/
+	id 'io.spring.dependency-management' version "${springBootDependenciesVersion}"
+
+	// ------ Liquibase (Generates database migrations) ------
+	// @see https://github.com/liquibase/liquibase-gradle-plugin
+	// latest version: https://plugins.gradle.org/plugin/org.liquibase.gradle
+	id 'org.liquibase.gradle' version '2.1.1'
+
+	// ------ IDEs ------
+	id 'idea'
+	id 'eclipse'
+}
+
+group 'com.acme'
+
+ext {
+	// Default building/testing mode: production
+	// Look at tasks: "setupDevelopment" & "setupProduction"
+	development = false
+	// Path to "Spring Boot" property file
+	springBootPropsPath = "$projectDir/src/main/resources/application.properties"
+	h2PropsPath = "$projectDir/src/main/resources/config/application-h2.properties"
+	hsqlPropsPath = "$projectDir/src/main/resources/config/application-hsql.properties"
+	// Path to Liquibase migrations
+	liquibaseTempChangeLogH2 = 'src/main/resources/migrations/h2/temp-changelog.json'
+	liquibaseMainChangeLogH2 = 'src/main/resources/migrations/h2/main-changelog.json'
+	liquibaseTempChangeLogHSQL = 'src/main/resources/migrations/hsql/temp-changelog.json'
+	liquibaseMainChangeLogHSQL = 'src/main/resources/migrations/hsql/main-changelog.json'
+	temporaryDatabaseDirectory = 'temp_db'
+	newAuthor = 'HIBERNATE'
+	isHyperSQL = false
+}
+
+repositories {
+	// MVN Repository - https://mvnrepository.com
+	mavenCentral()
+	// BACNet4J - https://maven.mangoautomation.net/#browse/browse:ias-release ( @see https://github.com/MangoAutomation/BACnet4J#bacnet4j )
+	maven {
+		url "https://maven.mangoautomation.net/repository/ias-release/"
+	}
+}
+
+java {
+	// Set Java version compatibility when compiling Java source & when running executables (JAR, WAR, EAR,...)
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+	// Build next to executable JARs, also source code & documentation
+	withJavadocJar()
+	withSourcesJar()
+}
+
+application {
+	mainClass = 'com.acme.onlineshop.Main'
+}
+
+configurations.all {
+	// Use a particular version for all dependency requests of specified package group/module
+	// @see https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.ResolutionStrategy.html
+	resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+		switch (details.requested.group) {
+			case 'ch.qos.logback':
+				details.useVersion "${logbackVersion}"
+				break
+			case 'com.fazecast':
+				details.useVersion "${jSerialCommVersion}"
+				break
+			case 'com.squareup.okhttp3':
+				// https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
+				details.useVersion '4.9.3'
+				break
+			case 'com.squareup.okio':
+				if (details.requested.name == 'okio') {
+					details.useVersion "${okIOVersion}"
+				}
+				break
+			case 'com.sun.activation':
+				// https://mvnrepository.com/artifact/com.sun.activation/jakarta.activation
+				details.useVersion '2.0.1'
+				break
+			case 'com.sun.istack':
+				// https://mvnrepository.com/artifact/com.sun.istack/istack-commons-runtime
+				details.useVersion '4.1.1'
+				break
+			case 'com.zaxxer':
+				// https://mvnrepository.com/artifact/com.zaxxer/HikariCP
+				details.useVersion '5.0.1'
+				break
+			case 'io.gsonfire':
+				// https://mvnrepository.com/artifact/io.gsonfire/gson-fire
+				details.useVersion '1.8.5'
+				break
+			case 'net.bytebuddy':
+				// https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy
+				details.useVersion '1.12.9'
+				break
+			case 'org.apache.logging.log4j':
+				// https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
+				details.useVersion '2.17.2'
+				break
+			case 'org.hibernate.validator':
+				// https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator
+				// ATTENTION: Higher versions do NOT work with Spring 2.6.7 !!!
+				details.useVersion '6.2.3.Final'
+				break
+			case 'org.jboss':
+				if (details.requested.name == 'jandex') {
+					// https://mvnrepository.com/artifact/org.jboss/jandex
+					details.useVersion '2.4.2.Final'
+				}
+				break
+			case 'org.jetbrains':
+				if (details.requested.name == 'annotations') {
+					// https://mvnrepository.com/artifact/org.jetbrains/annotations
+					details.useVersion '23.0.0'
+				}
+				break
+			case 'org.junit.jupiter':
+				details.useVersion "${junitJupiterVersion}"
+				break
+			case 'org.junit.platform':
+				details.useVersion "${junitPlatformVersion}"
+				break
+			case 'org.mockito':
+				// https://mvnrepository.com/artifact/org.mockito/mockito-core
+				details.useVersion '4.5.1'
+				break
+			case 'org.springframework.boot':
+				details.useVersion "${springBootVersion}"
+				break
+			case 'org.liquibase':
+				if (details.requested.name == 'liquibase-test-harness') {
+					// https://mvnrepository.com/artifact/org.liquibase/liquibase-test-harness
+					details.useVersion '1.0.5'
+				}
+				break
+			case 'org.spockframework':
+				// https://mvnrepository.com/artifact/org.spockframework/spock-core
+				details.useVersion '2.1-groovy-3.0'
+				break
+		}
+	}
+}
+
+dependencies {
+	// ---------------------------------------------------- Spring -----------------------------------------------------
+	// Dependencies are managed by "io.spring.dependency-management" plugin
+	// @see https://docs.spring.io/dependency-management-plugin/docs/current/reference/html/
+
+	developmentOnly group: 'org.springframework.boot', name: 'spring-boot-devtools'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+	implementation group: 'org.springframework.session', name: 'spring-session-jdbc'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
+	//implementation group: 'org.springframework.security', name: 'spring-security-data'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-thymeleaf'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator'
+	// implementation group: 'org.springframework.boot', name: 'spring-boot-starter-webflux'
+	annotationProcessor group: 'org.springframework.boot', name: 'spring-boot-configuration-processor'
+
+	// ---------------------------------------- Database (Embedded) & Hibernate ----------------------------------------
+
+	// H2 - https://mvnrepository.com/artifact/com.h2database/h2
+	runtimeOnly group: 'com.h2database', name: 'h2', version: '2.1.212'
+
+	// HyperSQL - https://mvnrepository.com/artifact/org.hsqldb/hsqldb
+	runtimeOnly group: 'org.hsqldb', name: 'hsqldb', version: '2.6.1'
+
+	// Hibernate - https://mvnrepository.com/artifact/org.hibernate/hibernate-core
+	implementation group: 'org.hibernate', name: 'hibernate-core', version: '5.6.8.Final'
+	// TODO: Update to "6.0.0.Final". Currently not working, since Hibernate has made the transition to Jakarta, but Spring NOT.
+	// Have to wait for Spring 6 in Q4 2022 (@see https://spring.io/blog/2021/09/02/a-java-17-and-jakarta-ee-9-baseline-for-spring-framework-6)
+
+	// ---------------------------------- Evolutionary Database - Liquibase (Gradle) -----------------------------------
+
+	// Liquibase
+	implementation group: 'org.liquibase', name: 'liquibase-core', version: "${liquibaseVersion}"
+	runtimeOnly group: 'org.liquibase.ext', name: 'liquibase-hibernate5', version: "${liquibaseVersion}"
+
+	// Liquibase (Classpath configuration)
+	// @see https://github.com/liquibase/liquibase-gradle-plugin#2-setting-up-the-classpath
+	liquibaseRuntime sourceSets.main.output
+
+	// ---------------------------------------------------- Testing ----------------------------------------------------
+
+	// JUnit 5
+	testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: "${junitJupiterVersion}"
+	testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: "${junitJupiterVersion}"
+	// testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: "${junitJupiterVersion}"
+	testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: "${junitJupiterVersion}"
+	// JUnit5 - Platform Suite (Run multiple tests at once)
+	// @see https://junit.org/junit5/docs/current/user-guide/#junit-platform-suite-engine
+	testRuntimeOnly group: 'org.junit.platform', name: 'junit-platform-launcher', version: "${junitPlatformVersion}"
+	testRuntimeOnly group: 'org.junit.platform', name: 'junit-platform-suite-engine', version: "${junitPlatformVersion}"
+	testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-api', version: "${junitPlatformVersion}"
+
+	// Spring Boot - Test
+	testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: "${springBootVersion}"
+	// Spring Boot - Test(Security)
+	testImplementation group: 'org.springframework.security', name: 'spring-security-test', version: "${springSecurityVersion}"
+	// Spring Boot - React Testing - https://mvnrepository.com/artifact/io.projectreactor/reactor-test
+	// testImplementation group: 'io.projectreactor', name: 'reactor-test', version: '3.1.0.RELEASE'
+	// Spring - Test - RabbitMQ Testing - https://mvnrepository.com/artifact/org.springframework.amqp/spring-rabbit-test
+	// testImplementation group: 'org.springframework.amqp', name: 'spring-rabbit-test', version: '2.3.10'
+
+	// ------------------------------------------------- Miscellaneous -------------------------------------------------
+
+	// Serial I/O for Java - jSerialComm
+	implementation group: 'com.fazecast', name: 'jSerialComm', version: "${jSerialCommVersion}"
+
+	// Enhanced I/O abilities - OK I/O
+	runtimeOnly group: 'com.squareup.okio', name: 'okio-jvm', version: "${okIOVersion}"
+
+	// Password policy enforcement - https://mvnrepository.com/artifact/org.passay/passay
+	implementation group: 'org.passay', name: 'passay', version: '1.6.1'
+
+	// Bouncy Castle Provider (Cryptography API) - https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on
+	implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.71'
+
+	// Java JSON Web Token (JJWT)
+	runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-impl', version: "${javaJsonWebTokens}"
+	implementation group: 'io.jsonwebtoken', name: 'jjwt-api', version: "${javaJsonWebTokens}"
+	implementation group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: "${javaJsonWebTokens}"
+
+	// Apache HTTP Components - https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
+	// implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
+
+	// Apache Commons CSV - https://mvnrepository.com/artifact/org.apache.commons/commons-csv
+	implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.9.0'
+
+	// REST endpoint Documentation - OpenAPI 3.0 with Swagger UI
+	implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: "${openAPIVersion}"
+	implementation group: 'org.springdoc', name: 'springdoc-openapi-security', version: "${openAPIVersion}"
+}
+
+configurations {
+	// Liquibase (Additional classpath configuration)
+	// @see https://github.com/liquibase/liquibase-gradle-plugin#2-setting-up-the-classpath
+	liquibaseRuntime.extendsFrom runtimeClasspath
+	// Integrate Spring Boot annotation processor
+	compileOnly.extendsFrom annotationProcessor
+}
+
+liquibase {
+	activities {
+		main {
+			defaultsFile 'src/main/resources/config/liquibase.properties'
+		}
+	}
+}
+
+// --------------------------------- Configure default Java & Spring Boot Gradle tasks ---------------------------------
+// @see https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_tasks
+
+tasks.withType(Jar).configureEach {
+	//Exclude secrets in production, but keep them in development
+	doFirst {
+		if (!development) {
+			processResources.exclude('secrets')
+		}
+	}
+}
+
+tasks.named('jar') {
+	doFirst {
+		if (!development) {
+			processResources.exclude('secrets')
+		}
+	}
+
+	manifest {
+		attributes(
+				'Implementation-Title': 'I3DE Meter Communication',
+				'Implementation-Version': project.version,
+				'Main-Class': application.mainClass,
+				'Built-By': System.properties['user.name'],
+				'Build-Timestamp': ZonedDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss O")),
+				'Build-JDK': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+				'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}",
+				'Gradle-Version': "${gradle.gradleVersion}"
+		)
+	}
+}
+
+tasks.named('bootJar') {
+	doLast() {
+		// Generate launch script
+		// @see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#packaging-executable.configuring.launch-script
+		launchScript()
+	}
+}
+
+tasks.register('productionModeTest', Test) {
+	description 'Tests if the prerequisites for the "production" mode are given or not.'
+	group 'verification'
+
+	useJUnitPlatform()
+
+	failFast = true
+
+	doFirst {
+		if (!development && !project.hasProperty('dev')) {
+			filter {
+				includeTestsMatching 'i3de.communication.MainTest'
+			}
+		} else {
+			throw new StopExecutionException('Jump over to other tests...')
+		}
+	}
+}
+
+tasks.named('test') {
+	description 'Run test in "development" mode with parameter: dev'
+
+	useJUnitPlatform()
+
+	dependsOn(productionModeTest)
+	//mustRunAfter(productionModeTest)
+
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+
+	filter {
+		excludeTestsMatching 'i3de.communication.MainTest'
+		excludeTestsMatching 'i3de.communication.readout.BitConversionSpeedTest'
+		excludeTestsMatching 'i3de.communication.readout.conversion.modbus.AllConversionTests'
+		excludeTestsMatching 'i3de.communication.persistence.timeseriesdatabase.influx.*'
+	}
+}
+
+tasks.named('javadoc') {
+	// Deactivate annoying warnings for none existing DOCs
+	options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.named('compileJava') {
+	options.encoding = StandardCharsets.UTF_8
+}
+
+tasks.named('compileTestJava') {
+	options.encoding = StandardCharsets.UTF_8
+}
+
+// ---------------------------------------------------- Custom Tasks ---------------------------------------------------
+tasks.register('setupDevelopment') {
+	description 'Setups building environment for "development" mode.'
+	group "${taskGroupName}"
+
+	// Change properties dynamically: https://docs.gradle.org/current/dsl/org.gradle.api.plugins.ExtraPropertiesExtension.html
+	doFirst {
+		project.ext.development = true
+	}
+}
+
+tasks.register('setupProduction') {
+	description 'Setups building environment for "production" mode.'
+	group "${taskGroupName}"
+
+	// Change properties dynamically: https://docs.gradle.org/current/dsl/org.gradle.api.plugins.ExtraPropertiesExtension.html
+	doFirst {
+		project.ext.development = false
+	}
+}
+
+tasks.register('getVersion') {
+	description 'Extracts last version from "CHANGELOG.md" file & sets current project version to found version.'
+	group "${taskGroupName}"
+
+	def changeLog = layout.projectDirectory.file('CHANGELOG.md')
+	project.version = ChangeLogReader.getCurrentVersion(changeLog.asFile)
+	println 'Current Project Version: ' + project.version
+}
+
+tasks.register('updateVersion', WriteProperties) {
+	description 'Updates ".../resources/config/shop.properties" file with project version.'
+	group "${taskGroupName}"
+	dependsOn(getVersion)
+
+	outputFile = 'src/main/resources/config/shop.properties'
+	def oldProperties = new Properties()
+	outputFile.withReader { oldProperties.load(it) }
+	boolean wroteVersion = false
+	for (prop in oldProperties) {
+		if(prop.key == 'version') {
+			// Update with new project version
+			property 'version', project.version
+			wroteVersion = true
+		} else {
+			// Set old property value
+			property prop.key, prop.value
+		}
+	}
+	if(!wroteVersion) {
+		property 'version', project.version
+	}
+}
+
+tasks.register('updateReadMe') {
+	description 'Updates "README.md" file with current project version.'
+	group "${taskGroupName}"
+	dependsOn(getVersion)
+
+	def readMe = layout.projectDirectory.file('README.md')
+	doLast {
+		UpdateReadMe.updateReadMe(readMe.asFile, project.version)
+	}
+}
+
+tasks.register('generateJSONWebTokenKey') {
+	description 'Reads "application.properties" file and generates a new random Base64 key for the default one inside the file.'
+	group "${taskGroupName}"
+	dependsOn(copyConfigFile)
+
+	def appProperties = layout.buildDirectory.file('libs/application.properties').get()
+	doLast {
+		JWTKeyGenerator.generateRandomKey(appProperties.asFile)
+	}
+}
+
+tasks.register('copyConfigFile', Copy) {
+	description 'Copies SSL/TLS key store & user specific property file next to fat JAR, which later has to be reconfigured by end users to his system needs.'
+	group "${taskGroupName}"
+
+	onlyIf { !development }
+	mustRunAfter(build)
+
+	from layout.projectDirectory.file('src/main/resources/secrets/onlineshop.p12')
+	from layout.projectDirectory.file('src/main/resources/secrets/custom.properties')
+	into layout.buildDirectory.dir('libs')
+	rename('custom.properties', 'application.properties')
+}
+
+tasks.register('updateBanner') {
+	description 'Updates banner by adding current version & copyright text.'
+	group "${taskGroupName}"
+	dependsOn(getVersion)
+
+	def sourceBanner = layout.projectDirectory.file('src/main/resources/banner.txt')
+	def targetBanner = layout.buildDirectory.file('resources/main/banner.txt').get()
+	def license = layout.projectDirectory.file('LICENSE').asFile.getText('UTF-8')
+	doLast {
+		UpdateBanner.updateBanner(sourceBanner.asFile, targetBanner.asFile, project.version, license)
+	}
+}
+
+tasks.register('prepareDiffChangeLog') {
+	description 'Determines new target file for new liquibase changelog.'
+	group "${taskGroupName}"
+
+	dependsOn(buildTemporaryDatabase)
+	mustRunAfter(buildTemporaryDatabase)
+
+	doLast {
+		def liquiUtil = new LiquibaseUtil()
+		def newChangeLogFileName = liquiUtil.getNextChangelogFile(layout.projectDirectory.file("src/main/resources/migrations/${databaseDir}/changelogs").asFile)
+		def newChangeLog = "src/main/resources/migrations/${databaseDir}/changelogs/${newChangeLogFileName}"
+
+		liquibase {
+			activities {
+				main {
+					changeLogFile newChangeLog
+				}
+			}
+		}
+	}
+}
+
+tasks.register('reviseDiffChangeLog') {
+	description 'Integrates the new created changelog into the main changelog by inserting relative path, which links to new file.'
+	group "${taskGroupName}"
+
+	dependsOn(diffChangeLog)
+	mustRunAfter(diffChangeLog)
+
+	doLast {
+		def liquiUtil = new LiquibaseUtil()
+		def changeLogFile = layout.projectDirectory.file("src/main/resources/migrations/${databaseDir}/changelogs")
+		def changeLogFileName = liquiUtil.getLastChangelogFile(changeLogFile.asFile)
+		liquiUtil.updateAuthor(changeLogFile.asFile, changeLogFileName, project.ext.newAuthor, isHyperSQL)
+
+		def newChangeLog = "./changelogs/${changeLogFileName}".toString()
+
+		def mainChangeLogFile = project.layout.projectDirectory.file(liquibaseMainChangeLog)
+		liquiUtil.updateMainChangeLog(mainChangeLogFile.asFile, newChangeLog)
+	}
+}
+
+tasks.register('setMainChangeLogFile') {
+	description 'Sets changelog file to "main-changelog.json".'
+	group "${taskGroupName}"
+
+	dependsOn(setupLiquibase)
+	mustRunAfter(h2Properties, hsqlProperties)
+
+	doLast {
+		liquibase {
+			activities {
+				main {
+					changeLogFile project.ext.liquibaseMainChangeLog
+				}
+			}
+		}
+	}
+}
+
+tasks.register('setupLiquibase') {
+	description 'Reads necessary property files for given database properties'
+	group "${taskGroupName}"
+
+	mustRunAfter(h2Properties, hsqlProperties)
+
+	doFirst {
+		// Liquibase configuration
+		// @see https://github.com/liquibase/liquibase-gradle-plugin#3-configuring-the-plugin
+		liquibase {
+			activities {
+				main {
+					url bootURL
+					username "${dbUsername}"
+					password ""
+					// Adapt "Spring Boot" DB column naming strategy
+					// @see https://github.com/liquibase/liquibase-hibernate/wiki#spring-boot
+					referenceUrl "hibernate:spring:i3de.communication.persistence?dialect=${bootDialect}" +
+							'&hibernate.physical_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy' +
+							'&hibernate.implicit_naming_strategy=org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy'
+					defaultsFile 'src/main/resources/config/liquibase.properties'
+					changeLogFile liquibaseTempChangeLog
+				}
+			}
+		}
+	}
+}
+
+tasks.register('hsqlProperties') {
+	description 'Reads necessary property files for HyperSQL database and setups properties in preparation of migration.'
+	group "${taskGroupName}"
+
+	// Liquibase configuration
+	// @see https://github.com/liquibase/liquibase-gradle-plugin#3-configuring-the-plugin
+	doFirst {
+		// Read "Spring Boot" application.properties
+		Properties springBootProperties = new Properties()
+		file(springBootPropsPath).withInputStream { springBootProperties.load(it) }
+		file(hsqlPropsPath).withInputStream { springBootProperties.load(it) }
+		// HyperSQL setup properties
+		project.ext.bootURL = springBootProperties.getProperty('spring.datasource.url')
+		project.ext.migrationURL = "jdbc:hsqldb:file:${temporaryDatabaseDirectory}/liquibase_changelog"
+		project.ext.dbUsername = ''
+		project.ext.bootDialect = springBootProperties.getProperty('spring.jpa.database-platform')
+		project.ext.databaseDir = 'hsql'
+		project.ext.liquibaseMainChangeLog = liquibaseMainChangeLogHSQL
+		project.ext.liquibaseTempChangeLog = liquibaseTempChangeLogHSQL
+		project.ext.isHyperSQL = true
+	}
+}
+
+tasks.register('h2Properties') {
+	description 'Reads necessary property files for H2 database and setups properties in preparation of migration.'
+	group "${taskGroupName}"
+
+	doFirst {
+		// Read "Spring Boot" application.properties
+		Properties springBootProperties = new Properties()
+		file(springBootPropsPath).withInputStream { springBootProperties.load(it) }
+		file(h2PropsPath).withInputStream { springBootProperties.load(it) }
+		// H2 setup properties
+		project.ext.bootURL = springBootProperties.getProperty('spring.datasource.url').split(';')[0]
+		project.ext.migrationURL = "jdbc:h2:file:./${temporaryDatabaseDirectory}/liquibase_changelog"
+		project.ext.dbUsername = springBootProperties.getProperty('spring.datasource.username')
+		project.ext.bootDialect = springBootProperties.getProperty('spring.jpa.database-platform')
+		project.ext.databaseDir = 'h2'
+		project.ext.liquibaseMainChangeLog = liquibaseMainChangeLogH2
+		project.ext.liquibaseTempChangeLog = liquibaseTempChangeLogH2
+	}
+}
+
+tasks.register('deleteDerbyLog') {
+	description 'Deletes empty "derby.log" file, which is automatically generated from Liquibase tasks.'
+	group "${taskGroupName}"
+
+	doLast {
+		// Bug: Plugin (Liquibase) generates an empty "derby.log" in project root directory
+		// @see https://github.com/liquibase/liquibase/issues/2196
+		delete 'derby.log'
+	}
+}
+
+tasks.register('setNewDatabaseURL') {
+	description 'Sets target URL to new location.'
+	group "${taskGroupName}"
+
+	dependsOn(setupLiquibase)
+
+	doLast {
+		liquibase {
+			activities {
+				main {
+					url migrationURL
+				}
+			}
+		}
+	}
+}
+
+tasks.register('buildTemporaryDatabase') {
+	description 'Builds a new (temporary) database & populates with latest changelog files for migration process.'
+	group "${taskGroupName}"
+
+	dependsOn(setupLiquibase, setNewDatabaseURL)
+}
+
+tasks.register('deleteTemporaryDatabase') {
+	description 'Deletes temporary database from migration process.'
+	group "${taskGroupName}"
+
+	mustRunAfter(reviseDiffChangeLog)
+
+	doLast {
+		delete temporaryDatabaseDirectory
+	}
+}
+
+tasks.register('BuildDevelopment') {
+	description 'Build application in "development" mode.'
+	group "${taskGroupName}"
+	dependsOn(setupDevelopment, build, updateVersion, updateReadMe)
+}
+
+tasks.register('BuildProduction') {
+	description 'Build application in "production" mode.'
+	group "${taskGroupName}"
+
+	dependsOn(setupProduction, build, updateVersion, updateReadMe, updateBanner, generateJSONWebTokenKey)
+}
+
+tasks.register('MakeHSQLMigrations') {
+	description 'Migrates any new database changes to change log files, that later can be consumed by the application when runnning with HyperSQL database.'
+	group "${taskGroupName}"
+
+	finalizedBy(deleteTemporaryDatabase, deleteDerbyLog)
+	dependsOn(hsqlProperties, buildTemporaryDatabase, prepareDiffChangeLog, diffChangeLog, reviseDiffChangeLog)
+}
+
+tasks.register('MakeH2Migrations') {
+	description 'Migrates any new database changes to change log files, that later can be consumed by the application when runnning with H2 database.'
+	group "${taskGroupName}"
+
+	finalizedBy(deleteTemporaryDatabase, deleteDerbyLog)
+	dependsOn(h2Properties, buildTemporaryDatabase, prepareDiffChangeLog, diffChangeLog, reviseDiffChangeLog)
+}
+
+tasks.register('MigrateHyperSQL') {
+	description 'Pushes any changes that are in the changelog files and that have not been deployed to the HyperSQL database yet.'
+	group "${taskGroupName}"
+
+	dependsOn(hsqlProperties, setMainChangeLogFile, update)
+}
+
+tasks.register('MigrateH2') {
+	description 'Pushes any changes that are in the changelog files and that have not been deployed to the H2 database yet.'
+	group "${taskGroupName}"
+
+	dependsOn(h2Properties, setMainChangeLogFile, update)
+}
+
+tasks.register('DeleteMigrationsFromHyperSQL') {
+	description 'Drops ALL tables from database.'
+	group "${taskGroupName}"
+
+	dependsOn(hsqlProperties, setMainChangeLogFile, dropAll)
+}
+
+tasks.register('DeleteMigrationsFromH2') {
+	description 'Drops ALL tables from database.'
+	group "${taskGroupName}"
+
+	dependsOn(h2Properties, setMainChangeLogFile, dropAll)
+}
+
+// ------------------------------------------------ Task orchestration -------------------------------------------------
+// @see https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:ordering_tasks
+// @see https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:finalizer_tasks
+build.configure {
+	dependsOn(getVersion)
+	mustRunAfter(setupDevelopment, setupProduction)
+}
+processResources.configure { mustRunAfter(updateVersion) }
+sourcesJar.configure { mustRunAfter(updateVersion) }
+diffChangeLog.configure { mustRunAfter(prepareDiffChangeLog) }
+update.configure {
+	mustRunAfter(setMainChangeLogFile)
+	finalizedBy(deleteDerbyLog)
+}
+dropAll.configure {
+	mustRunAfter(setMainChangeLogFile)
+	finalizedBy(deleteDerbyLog)
+}
+diffChangeLog.configure {
+	// This is necessary for the Hibernate entities. They can only be recognize by Liquibase if the Java code is compiled!!!
+	dependsOn(compileJava)
+	// Ignore "Spring Boot" session tables
+	// @see https://docs.liquibase.com/workflows/liquibase-community/including-and-excluding-objects-from-a-database.html
+	doLast {
+		liquibase {
+			activities {
+				main {
+					excludeObjects "SPRING_SESSION,SPRING_SESSION_ATTRIBUTES"
+				}
+			}
+		}
+	}
+}

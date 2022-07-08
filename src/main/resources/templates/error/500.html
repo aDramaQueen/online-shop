@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Error occurred</title>
+</head>
+    <body>
+        <h1>Internal Server Error</h1>
+
+        <p th:if="${url}"> <b>Page:</b> <span th:text="${url}">Page URL</span> </p>
+        <p th:if="${timestamp}" id='created'> <b>Occurred:</b> <span th:text="${timestamp}">Timestamp</span> </p>
+        <p th:if="${status}">
+            <b>Response Status:</b>
+            <span th:text="${status}">status-code</span>
+            <span th:if="${error}" th:text="'('+${error}+')'">error ...</span>
+        </p>
+
+        <p>Application has encountered an error. Please contact support on...</p>
+
+        <th:block th:if="${T(i3de.communication.Constants).DEBUG}">
+            <blockquote>
+                <i>Note: Following exception only shows in debug mode, since you would never generate a page that displays a
+                    Java exception to an end-user in production mode</i>
+            </blockquote>
+            <div th:if="${ex}">
+                <b>Cause:</b>
+                <span style="padding-left:1em;" th:if="${ex}" th:text="${ex}"> </span><br>
+                <div class="stack-trace" style="padding-left:2em;" th:if="${ex}" th:each="trace : ${ex.getStackTrace()}">
+                    <span th:text="${trace}"></span><br>
+                </div>
+
+            </div>
+            <div th:unless="${ex}">
+                <div th:if="${exception}">
+                    <b>Cause:</b><br>
+                    <span style="padding-left:1em;" th:if="${exception}" th:text="${exception}"> </span><br>
+                    <div class="stack-trace" style="padding-left:2em;" th:if="${exception}" th:each="trace : ${exception.getStackTrace()}">
+                        <span th:text="${trace}"></span><br>
+                    </div>
+                </div>
+                <div th:unless="${exception}">
+                    <div th:if="${message} and ${message.length() != 0}">
+                        <b>Cause:</b>
+                        <span th:if="${message} and ${message.length() != 0}" th:text="${message}"> </span>
+                    </div>
+                    <div th:unless="${message} and ${message.length() != 0}">
+                        <span>Unknown error occurred</span>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+        <th:block th:unless="${T(i3de.communication.Constants).DEBUG}">
+            <div th:if="${ex}">
+                <b>Cause:</b>
+                <span th:if="${ex}" th:text="${ex.message}"> </span>
+            </div>
+            <div th:unless="${ex}">
+                <div th:if="${exception}">
+                    <b>Cause:</b>
+                    <span th:if="${exception}" th:text="${exception.message}"> </span>
+                </div>
+                <div th:unless="${exception}">
+                    <div th:if="${message} and ${message.length() != 0}">
+                        <b>Cause:</b>
+                        <span th:if="${message} and ${message.length() != 0}" th:text="${message}"> </span>
+                    </div>
+                    <div th:unless="${message} and ${message.length() != 0}">
+                        <span>Unknown error occurred</span>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+        <hr/>
+        <a href="/" style="font-size: 40px;">Home</a>
+    </body>
+</html>
