@@ -56,7 +56,6 @@ public class OpenAPIConfig {
                 .addProperty("error code", new StringSchema().example("Error errorMessage belonging to the error code")).example(getErrorCodeExample());
         result.add(integerStringMap);
         // Build more custom schemas...
-
         return result;
     }
 

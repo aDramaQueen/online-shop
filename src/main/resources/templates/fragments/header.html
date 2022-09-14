@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <head>
+        <meta th:replace="~{fragments/base.html :: base-head}"/>
+        <title>Header Templates</title>
+    </head>
+    <body>
+        <!-- ============================================ Header: Admin ============================================ -->
+        <header th:fragment="admin" class="mb-3 border-bottom w-100" id="admin-header">
+            <div class="container-fluid">
+                <div class="d-flex align-items-center justify-content-between">
+
+                    <a class="d-flex align-items-center text-dark text-decoration-none">
+                        <object type="image/svg+xml" th:data="@{/images/svg/default-logo.svg}" width="40" height="32">
+                            Company Logo
+                        </object>
+                    </a>
+
+                    <span class="text-wrap pe-2 align-self-center" th:id="company-name">Acme Inc.</span>
+
+                    <ul class="nav flex-grow-1 justify-content-center">
+                        <li><a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).ADMIN_OVERVIEW.url})}" class="nav-link px-2 link-secondary">Overview</a></li>
+                        <li><a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).ADMIN_INVENTORY.url})}" class="nav-link px-2 link-dark">Inventory</a></li>
+                        <li><a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).ADMIN_CUSTOMERS.url})}" class="nav-link px-2 link-dark">Customers</a></li>
+                        <li><a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).ADMIN_CATEGORIES.url})}" class="nav-link px-2 link-dark">Categories</a></li>
+                    </ul>
+
+                    <div class="dropdown text-end">
+                        <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="/images/svg/default-user.svg" th:src="@{/images/svg/default-user.svg}" alt="mdo" width="32" height="32" class="rounded-circle">
+                        </a>
+                        <ul class="dropdown-menu text-small" style="">
+                            <th:block sec:authorize="isAuthenticated()">
+                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript: document.logoutForm.submit()">Sign out</a>
+                                    <form name="logoutForm" th:action="@{{path}(path=${T(com.acme.onlineshop.web.URL).LOGOUT.url})}" method="POST" hidden>
+                                        <input hidden type="submit" value="Log Out"/>
+                                    </form>
+                                </li>
+                            </th:block>
+                            <th:block sec:authorize="isAnonymous()">
+                                <li><a class="dropdown-item" href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).LOGIN.url})}">Login/Register</a></li>
+                            </th:block>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ============================================ Header: User ============================================= -->
+        <header th:fragment="user" class="container-fluid mb-3 p-0" id="user-header">
+            <div class="d-flex align-items-center justify-content-between ps-1 pe-1">
+                <a class="d-flex align-items-center text-dark text-decoration-none">
+                    <object type="image/svg+xml" th:data="@{/images/svg/default-logo.svg}" width="40" height="32">
+                        Company Logo
+                    </object>
+                </a>
+
+                <a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).HOME.url})}" class="text-wrap link-dark text-decoration-none pe-2 align-self-center" th:id="company-name">Acme Inc.</a>
+
+                <form class="ml-2 flex-grow-1" action="#" th:action="@{{path}(path=${T(com.acme.onlineshop.web.URL).SEARCH.url})}" role="search" type="GET" id="searchForm">
+                    <input type="search" name="search" class="form-control" placeholder="Search...">
+                </form>
+
+                <ul class="nav justify-content-center">
+                    <li><a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).BASKET.url})}" class="nav-link px-2 link-secondary"><i class="bi bi-cart3" style="font-size: 2rem;"></i></a></li>
+                </ul>
+
+                <div class="dropdown text-end">
+                    <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="/images/svg/default-user.svg" th:src="@{/images/svg/default-user.svg}" alt="User Image" width="32" height="32" class="rounded-circle">
+                    </a>
+                    <ul class="dropdown-menu text-small">
+                        <th:block sec:authorize="isAuthenticated()">
+                            <li><a class="dropdown-item" href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).PROFILE.url})}">Profile</a></li>
+                            <li><a class="dropdown-item" href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).SETTINGS.url})}">Settings</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="javascript: document.logoutForm.submit()">Sign out</a>
+                                <form name="logoutForm" th:action="@{{path}(path=${T(com.acme.onlineshop.web.URL).LOGOUT.url})}" method="POST" hidden>
+                                    <input hidden type="submit" value="Log Out"/>
+                                </form>
+                            </li>
+                        </th:block>
+                        <th:block sec:authorize="isAnonymous()">
+                            <li><a class="dropdown-item" href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).LOGIN.url})}">Login/Register</a></li>
+                        </th:block>
+                    </ul>
+                </div>
+            </div>
+            <nav class="navbar navbar-expand-md" id="navbar">
+                <div class="container-fluid">
+                    <a class="navbar-brand">Favourites</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#category-navbar" aria-controls="category-navbar" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="category-navbar">
+                        <ul class="navbar-nav me-auto justify-content-start mb-2 mb-md-0">
+                            <th:block th:each="category : ${favourites}">
+                                <li class="nav-item">
+                                    <a class="nav-link " href="#" th:href="@{{link}(link=${category.link})}" th:text="${{category.name}}">Favourite Category</a>
+                                </li>
+                            </th:block>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).HOME.url})}" class="text-wrap link-dark text-decoration-none pe-2 align-self-center">HOME</a>
+                </div>
+            </nav>
+        </header>
+    </body>
+</html>

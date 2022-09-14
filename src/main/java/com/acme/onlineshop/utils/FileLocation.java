@@ -8,12 +8,11 @@ package com.acme.onlineshop.utils;
  */
 public enum FileLocation {
 
-    ICON_TRAY_ELECTRIC_PYLON("/static/images/png/electricity-pylon.png"),
-    ICON_TRAY_LIGHT_BULB_OFF("/static/images/png/lightbulb-off.png"),
-    ICON_TRAY_LIGHT_BULB_ON("/static/images/png/lightbulb-on.png"),
-    ICON_TRAY_NETWORK("/static/images/png/network.png"),
+    STATIC_DIRECTORY("static"),
+    MEDIA_DIRECTORY("media"),
+    IMAGE_DIRECTORY(MEDIA_DIRECTORY.location +"/images"),
     LOGGING_DIRECTORY("/logging"),
-    PID_FILE("/onlineshop.pid"),
+    PID_FILE("/online_shop.pid"),
     SETTINGS("/settings.properties");
 
     public final String location;

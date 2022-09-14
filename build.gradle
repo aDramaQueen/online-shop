@@ -147,9 +147,6 @@ configurations.all {
 				// https://mvnrepository.com/artifact/org.mockito/mockito-core
 				details.useVersion '4.5.1'
 				break
-			case 'org.springframework.boot':
-				details.useVersion "${springBootVersion}"
-				break
 			case 'org.liquibase':
 				if (details.requested.name == 'liquibase-test-harness') {
 					// https://mvnrepository.com/artifact/org.liquibase/liquibase-test-harness
@@ -185,7 +182,6 @@ dependencies {
 
 	// H2 - https://mvnrepository.com/artifact/com.h2database/h2
 	runtimeOnly group: 'com.h2database', name: 'h2', version: '2.1.212'
-
 	// HyperSQL - https://mvnrepository.com/artifact/org.hsqldb/hsqldb
 	runtimeOnly group: 'org.hsqldb', name: 'hsqldb', version: '2.6.1'
 
@@ -218,20 +214,20 @@ dependencies {
 	testImplementation group: 'org.junit.platform', name: 'junit-platform-suite-api', version: "${junitPlatformVersion}"
 
 	// Spring Boot - Test
-	testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: "${springBootVersion}"
+	testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
 	// Spring Boot - Test(Security)
-	testImplementation group: 'org.springframework.security', name: 'spring-security-test', version: "${springSecurityVersion}"
+	testImplementation group: 'org.springframework.security', name: 'spring-security-test'
+	// Spring - Test - RabbitMQ Testing - https://mvnrepository.com/artifact/org.springframework.amqp/spring-rabbit-test
+	// testImplementation group: 'org.springframework.amqp', name: 'spring-rabbit-test'
 	// Spring Boot - React Testing - https://mvnrepository.com/artifact/io.projectreactor/reactor-test
 	// testImplementation group: 'io.projectreactor', name: 'reactor-test', version: '3.1.0.RELEASE'
-	// Spring - Test - RabbitMQ Testing - https://mvnrepository.com/artifact/org.springframework.amqp/spring-rabbit-test
-	// testImplementation group: 'org.springframework.amqp', name: 'spring-rabbit-test', version: '2.3.10'
 
 	// ------------------------------------------------- Miscellaneous -------------------------------------------------
 
-	// Serial I/O for Java - jSerialComm
+	// Serial I/O for Java - jSerialComm ( https://fazecast.github.io/jSerialComm/ )
 	implementation group: 'com.fazecast', name: 'jSerialComm', version: "${jSerialCommVersion}"
 
-	// Enhanced I/O abilities - OK I/O
+	// Enhanced I/O abilities - OK I/O ( https://square.github.io/okio/ )
 	runtimeOnly group: 'com.squareup.okio', name: 'okio-jvm', version: "${okIOVersion}"
 
 	// Password policy enforcement - https://mvnrepository.com/artifact/org.passay/passay
@@ -245,11 +241,14 @@ dependencies {
 	implementation group: 'io.jsonwebtoken', name: 'jjwt-api', version: "${javaJsonWebTokens}"
 	implementation group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: "${javaJsonWebTokens}"
 
-	// Apache HTTP Components - https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
-	// implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
+	// Thymeleaf & Spring Security integration - https://mvnrepository.com/artifact/org.thymeleaf.extras/thymeleaf-extras-springsecurity5
+	implementation group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity5', version: '3.0.4.RELEASE'
 
-	// Apache Commons CSV - https://mvnrepository.com/artifact/org.apache.commons/commons-csv
+	// Apache Commons Library - CSV - https://mvnrepository.com/artifact/org.apache.commons
 	implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.9.0'
+
+	// Apache Tika (Detect MIME type of arbitrary files) - https://mvnrepository.com/artifact/org.apache.tika/tika-core
+	implementation group: 'org.apache.tika', name: 'tika-core', version: '2.4.1'
 
 	// REST endpoint Documentation - OpenAPI 3.0 with Swagger UI
 	implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: "${openAPIVersion}"
@@ -293,7 +292,7 @@ tasks.named('jar') {
 
 	manifest {
 		attributes(
-				'Implementation-Title': 'I3DE Meter Communication',
+				'Implementation-Title': 'Acme Inc. Shopping',
 				'Implementation-Version': project.version,
 				'Main-Class': application.mainClass,
 				'Built-By': System.properties['user.name'],
@@ -344,12 +343,12 @@ tasks.named('test') {
 		events "passed", "skipped", "failed"
 	}
 
-	filter {
-		excludeTestsMatching 'i3de.communication.MainTest'
-		excludeTestsMatching 'i3de.communication.readout.BitConversionSpeedTest'
-		excludeTestsMatching 'i3de.communication.readout.conversion.modbus.AllConversionTests'
-		excludeTestsMatching 'i3de.communication.persistence.timeseriesdatabase.influx.*'
-	}
+//	filter {
+//		excludeTestsMatching 'i3de.communication.MainTest'
+//		excludeTestsMatching 'i3de.communication.readout.BitConversionSpeedTest'
+//		excludeTestsMatching 'i3de.communication.readout.conversion.modbus.AllConversionTests'
+//		excludeTestsMatching 'i3de.communication.persistence.timeseriesdatabase.influx.*'
+//	}
 }
 
 tasks.named('javadoc') {

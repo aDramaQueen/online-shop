@@ -2,7 +2,6 @@ package com.acme.onlineshop.security;
 
 import com.acme.onlineshop.Constants;
 import com.acme.onlineshop.filters.JWTFilter;
-import com.acme.onlineshop.service.UserService;
 import com.acme.onlineshop.web.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -13,12 +12,13 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.access.vote.RoleHierarchyVoter;
 import org.springframework.security.access.vote.RoleVoter;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -43,9 +43,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * @see <a href="https://docs.spring.io/spring-security/reference/servlet/configuration/java.html">Spring Security - Configuration</a>
  * @see <a href="https://docs.spring.io/spring-security/reference/servlet/configuration/java.html#_multiple_httpsecurity">Spring Security - Configuration for multiple HttpSecurities</a>
  */
+@Configuration
 @EnableWebSecurity(debug = Constants.WEB_SECURITY_DEBUG)
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
+    private final static AuthenticationSuccessHandler successHandler = loginAuthenticationSuccessHandler();
     private final static AuthenticationFailureHandler failureHandler = loginAuthenticationFailureHandler();
 
     private static final String[] WHITELIST_RESOURCES = {
@@ -71,124 +73,109 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             "/swagger-ui.html",
             "/swagger-ui/**"
     };
-    private final UserService userService;
+    private final JWTFilter jwtFilter;
 
     @Autowired
-    SecurityConfig(UserService userService) {
-        this.userService = userService;
+    SecurityConfig(JWTFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
     }
 
     /**
      * Configuration for REST endpoints: Authentication system based on <b>J</b>SON <b>W</b>eb <b>T</b>okens (<b>JWT</b>)
      */
-    @Configuration
     @Order(1)
-    public static class ApiSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter {
-
-        private final JWTFilter jwtFilter;
-
-        @Autowired
-        ApiSecurityConfigurationAdapter(JWTFilter jwtFilter) {
-            this.jwtFilter = jwtFilter;
+    @Bean
+    protected SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+        if(Constants.WEB_SECURITY) {
+            // Everything that follow is just valid for endpoints beyond "/api/..."
+            http.antMatcher("%s/**".formatted(URL.REST_API.url))
+                    // For a pure REST endpoint, there is no need for CSRF tokens
+                    .csrf().disable()
+                    .authorizeRequests()
+                    // Allows OpenAPI 3.0 & some chosen single endpoints without any security barrier
+                    .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
+                    // TODO: Add some REST endpoints
+                    .antMatchers(HttpMethod.DELETE, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.DELETE.getPermission(PermissionOperation.SYSTEM))
+                    .antMatchers(HttpMethod.POST, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.CREATE.getPermission(PermissionOperation.SYSTEM))
+                    .antMatchers(HttpMethod.PUT, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.CREATE_UPDATE.getPermission(PermissionOperation.SYSTEM))
+                    .antMatchers(HttpMethod.GET, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.READ.getPermission(PermissionOperation.SYSTEM))
+                    // All other requests have to be from any authenticated user
+                    .anyRequest().authenticated()
+                    // Stateless session for JWT
+                    .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    // Add JWT BEFORE standard user authentication
+                    .and().addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);//.addFilterAfter(errorCodeFilter, UsernamePasswordAuthenticationFilter.class);
+        } else {
+            //Allow every request from any (unauthorized) user & disable CSRF tokens
+            http.antMatcher("%s/**".formatted(URL.REST_API.url)).authorizeRequests().anyRequest().permitAll().and().csrf().disable();
         }
-
-        @Override
-        protected void configure(final HttpSecurity http) throws Exception {
-            if(Constants.WEB_SECURITY) {
-                // Everything that follow is just valid for endpoints beyond "/api/..."
-                http.antMatcher("%s/**".formatted(URL.REST_API.url))
-                        // For a pure REST endpoint, there is no need for CSRF tokens
-                        .csrf().disable()
-                        .authorizeRequests()
-                        // Allows OpenAPI 3.0 & some chosen single endpoints without any security barrier
-                        .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
-                        // TODO: Add some REST endpoints
-                        .antMatchers(HttpMethod.DELETE, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.DELETE.getPermission(PermissionOperation.METER))
-                        .antMatchers(HttpMethod.POST, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.CREATE_UPDATE.getPermission(PermissionOperation.METER))
-                        .antMatchers(HttpMethod.PUT, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.CREATE_UPDATE.getPermission(PermissionOperation.METER))
-                        .antMatchers(HttpMethod.GET, "%s/*".formatted(URL.REST_SECURITY.url)).hasAuthority(PermissionFunction.READ.getPermission(PermissionOperation.METER))
-                        // All other requests have to be from any authenticated user
-                        .anyRequest().authenticated()
-                        // Stateless session for JWT
-                        .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        // Add JWT BEFORE standard user authentication
-                        .and().addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);//.addFilterAfter(errorCodeFilter, UsernamePasswordAuthenticationFilter.class);
-            } else {
-                //Allow every request from any (unauthorized) user & disable CSRF tokens
-                http.authorizeRequests().anyRequest().permitAll().and().csrf().disable();
-            }
-        }
+        return http.build();
     }
 
     /**
-     * Configuration for REST endpoints: Authentication system based on <b>J</b>SON <b>W</b>eb <b>T</b>okens (<b>JWT</b>)
+     * Configuration for "Spring Boot Actuator" REST endpoints: Authentication system based on <b>J</b>SON <b>W</b>eb <b>T</b>okens (<b>JWT</b>)
      */
-    @Configuration
     @Order(2)
-    public static class ActuatorSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter {
-
-        private final JWTFilter jwtFilter;
-
-        @Autowired
-        ActuatorSecurityConfigurationAdapter(JWTFilter jwtFilter) {
-            this.jwtFilter = jwtFilter;
+    @Bean
+    protected SecurityFilterChain actuatorFilterChain(HttpSecurity http) throws Exception {
+        if(Constants.WEB_SECURITY) {
+            // Everything that follow is just valid for endpoints beyond "/actuator/..."
+            http.antMatcher("%s/**".formatted(URL.REST_ACTUATOR.url))
+                    // For a pure REST endpoint, there is no need for CSRF tokens
+                    .csrf().disable()
+                    .authorizeRequests()
+                    // Allows OpenAPI 3.0 & some chosen single endpoints without any security barrier
+                    .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
+                    // All requests have to be from any authenticated user
+                    .anyRequest().authenticated()
+                    // Stateless session for JWT
+                    .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    // Add JWT BEFORE standard user authentication
+                    .and().addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        } else {
+            //Allow every request from any (unauthorized) user & disable CSRF tokens
+            http.antMatcher("%s/**".formatted(URL.REST_ACTUATOR.url)).authorizeRequests().anyRequest().permitAll().and().csrf().disable();
         }
-
-        @Override
-        protected void configure(final HttpSecurity http) throws Exception {
-            if(Constants.WEB_SECURITY) {
-                // Everything that follow is just valid for endpoints beyond "/actuator/..."
-                http.antMatcher("/actuator/**")
-                        // For a pure REST endpoint, there is no need for CSRF tokens
-                        .csrf().disable()
-                        .authorizeRequests()
-                        // Allows OpenAPI 3.0 & some chosen single endpoints without any security barrier
-                        .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
-                        // All requests have to be from any authenticated user
-                        .anyRequest().authenticated()
-                        // Stateless session for JWT
-                        .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        // Add JWT BEFORE standard user authentication
-                        .and().addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-            } else {
-                //Allow every request from any (unauthorized) user & disable CSRF tokens
-                http.authorizeRequests().anyRequest().permitAll().and().csrf().disable();
-            }
-        }
+        return http.build();
     }
 
     /**
      * Configuration for "normal" websites: Authentication system based on sessions
      */
-    @Configuration
     @Order(3)
-    public static class WebsitesSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter {
-
-        @Override
-        protected void configure(HttpSecurity http) throws Exception {
-            if(Constants.WEB_SECURITY) {
-                http.authorizeRequests()
-                        // Allows home view, login view, OpenAPI & resources without any security barrier
-                        .antMatchers(WHITELIST_RESOURCES).permitAll()
-                        .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
-                        .antMatchers(WHITELIST_WEBSITES).permitAll()
-                        // All "User" related sites are just accessible for admin users
-                        .antMatchers(URL.USERS.url + "/**").hasRole(Role.ADMIN.name())
-                        // All other requests (e.g. statistics, meters, modbus,...) have to be from any authenticated user
-                        .anyRequest().authenticated()
-                        // Login mechanism
-                        .and().formLogin().loginPage(URL.Path.LOGIN).failureForwardUrl(URL.Path.LOGIN + "?error=true").defaultSuccessUrl(URL.Path.INDEX).failureHandler(failureHandler)
-                        // Logout mechanism
-                        .and().logout().deleteCookies("JSESSIONID").logoutSuccessUrl(URL.Path.INDEX).permitAll();
-            } else {
-                //Allow every request from any (unauthorized) user & disable CSRF tokens
-                http.authorizeRequests().anyRequest().permitAll()
-                        // Login mechanism
-                        .and().formLogin().loginPage(URL.Path.LOGIN).failureForwardUrl(URL.Path.LOGIN + "?error=true").defaultSuccessUrl(URL.Path.INDEX).failureHandler(failureHandler)
-                        // Logout mechanism
-                        .and().logout().deleteCookies("JSESSIONID").logoutSuccessUrl(URL.Path.INDEX).permitAll();
-            }
+    @Bean
+    protected SecurityFilterChain websiteFilterChain(HttpSecurity http) throws Exception {
+        if(Constants.WEB_SECURITY) {
+            http.authorizeRequests()
+                    // Allows home view, login view, OpenAPI & resources without any security barrier
+                    .antMatchers(WHITELIST_RESOURCES).permitAll()
+                    .antMatchers(WHITELIST_REST_ENDPOINTS).permitAll()
+                    .antMatchers(WHITELIST_WEBSITES).permitAll()
+                    // All "User" related sites are just accessible for admin users
+                    .antMatchers(URL.USERS.url + "/**").hasRole(Role.ADMIN.name())
+                    // All other requests (e.g. statistics, meters, modbus,...) have to be from any authenticated user
+                    .anyRequest().authenticated()
+                    // Login mechanism
+                    .and().formLogin().loginPage(URL.Path.LOGIN).successHandler(successHandler).failureHandler(failureHandler)
+                    // Logout mechanism
+                    .and().logout().logoutUrl(URL.Path.LOGOUT).deleteCookies("JSESSIONID").logoutSuccessUrl(URL.Path.HOME).permitAll()
+                    // Allows loading HTML <object> tag
+                    .and().headers().frameOptions().sameOrigin()
+                    // Allow "Basic Auth"
+                    .and().httpBasic();
+        } else {
+            //Allow every request from any (unauthorized) user & disable CSRF tokens
+            http.authorizeRequests().anyRequest().permitAll()
+                    // Login mechanism (is actually not very useful, since anonymous users have already all rights...)
+                    .and().formLogin().loginPage(URL.Path.LOGIN).successHandler(successHandler).failureHandler(failureHandler)
+                    // Logout mechanism
+                    .and().logout().logoutUrl(URL.Path.LOGOUT).deleteCookies("JSESSIONID").logoutSuccessUrl(URL.Path.HOME).permitAll()
+                    // Allows loading HTML <object> tag
+                    .and().headers().frameOptions().sameOrigin()
+                    // Allow "Basic Auth"
+                    .and().httpBasic();
         }
+        return http.build();
     }
 
     /**
@@ -205,21 +192,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     /**
-     * Make {@link AuthenticationManager} accessible via {@link Bean}
+     * Returns the {@link AuthenticationManager} for this application
      *
-     * @return {@link AuthenticationManager}
-     * @throws Exception If something goes wrong...
-     * @see <a href="https://docs.spring.io/spring-security/reference/servlet/authentication/architecture.html#servlet-authentication-authenticationmanager">Spring Security - Authentication Manager</a>
+     * @param authenticationConfiguration Autowired authentication configuration
+     * @return Authentication manager that handles all users
      */
-    @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder authBuilder) throws Exception {
-        authBuilder.userDetailsService(userService);
+    private static AuthenticationSuccessHandler loginAuthenticationSuccessHandler() {
+        return new RedirectionAuthenticationSuccessHandler(URL.Path.HOME);
     }
 
     private static AuthenticationFailureHandler loginAuthenticationFailureHandler() {

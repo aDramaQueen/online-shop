@@ -66,7 +66,7 @@ dist/
 nbdist/
 .nb-gradle/
 
-### I3D Meter Communication ###
+### ACME Inc. Online Shop ###
 db/
 logging/
 src/temp_db/
@@ -76,7 +76,7 @@ src/test/resources/secrets/
 src/main/resources/migrations/changelogs/
 !src/main/resources/migrations/changelogs/0000-changelog.json
 src/main/resources/migrations/temp-changelog.json
-src/main/java/com/acme/onlineshop/Spielplatz.java
+src/main/java/com/acme/onlineshop/Playground.java
 settings.properties
 derby.log
 onlineshop.pid

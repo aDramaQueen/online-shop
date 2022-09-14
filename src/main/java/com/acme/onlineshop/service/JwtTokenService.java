@@ -70,7 +70,7 @@ public class JwtTokenService implements ApplicationListener<ApplicationReadyEven
     @Override
     @Transactional
     public void onApplicationEvent(ApplicationReadyEvent readyEvent) {
-        String jwtKey = applicationConfigRepo.getById(ApplicationConfiguration.APPLICATION_CONFIG_ID).getJwtKey();
+        String jwtKey = applicationConfigRepo.getReferenceById(ApplicationConfiguration.APPLICATION_CONFIG_ID).getJwtKey();
         updateKey(jwtKey);
     }
 

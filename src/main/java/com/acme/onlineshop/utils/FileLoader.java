@@ -1,10 +1,14 @@
 package com.acme.onlineshop.utils;
 
+import com.acme.onlineshop.ApplicationConfiguration;
 import com.acme.onlineshop.Main;
+import com.acme.onlineshop.persistence.user.User;
 import org.springframework.boot.system.ApplicationHome;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -58,6 +62,15 @@ public class FileLoader {
 
     public static URL loadEmbeddedFile(FileLocation file) {
         return Main.class.getResource(file.location);
+    }
+
+    public static File createDirectory(Path directoryPath) throws IOException {
+        return Files.createDirectories(directoryPath).toFile();
+    }
+
+    public static File createNewImageDirectory(User user) throws IOException {
+        Path newPath = Path.of(ApplicationConfiguration.getMediaRootDirectory().toString(), user.getUsername());
+        return createDirectory(newPath);
     }
 
     public static boolean isJar() {

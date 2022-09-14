@@ -1,5 +1,6 @@
 package com.acme.onlineshop.service;
 
+import com.acme.onlineshop.ApplicationConfiguration;
 import com.acme.onlineshop.exception.EnablingException;
 import com.acme.onlineshop.exception.PasswordStrengthException;
 import com.acme.onlineshop.exception.RESTException;
@@ -11,8 +12,11 @@ import com.acme.onlineshop.security.PasswordValidator;
 import com.acme.onlineshop.security.PermissionFunction;
 import com.acme.onlineshop.security.PermissionOperation;
 import com.acme.onlineshop.security.Role;
+import com.acme.onlineshop.utils.FileLoader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,11 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.PersistenceException;
+import java.io.IOException;
 import java.util.*;
 
 @Service
 public class UserService implements UserDetailsService {
 
+    public final static String ANONYMOUS_USERNAME = "anonymousUser";
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -33,6 +39,16 @@ public class UserService implements UserDetailsService {
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    /**
+     * Returns current user in the scope of this context/session.
+     *
+     * @return If user is logged in the persistence User object is returned, else user is not logged in (a.k.a. anonymous) and {@code null} is returned.
+     */
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return (authentication.getName().equals(ANONYMOUS_USERNAME)) ? null : (User) authentication.getPrincipal();
     }
 
     @Transactional(readOnly = true)
@@ -62,7 +78,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public User addNewUser(User user, boolean validatePassword) {
+    public User addNewUser(User user, boolean validatePassword) throws IOException {
         setUserForUserPermissions(user);
         if(validatePassword) {
             PasswordValidator validator = new PasswordValidator();
@@ -82,7 +98,9 @@ public class UserService implements UserDetailsService {
             user.setEnabled(true);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        User newUser = userRepository.save(user);
+        FileLoader.createNewImageDirectory(newUser);
+        return newUser;
     }
 
     @Transactional
@@ -104,7 +122,7 @@ public class UserService implements UserDetailsService {
 
     @Transactional(readOnly = true)
     public User loadUserByID(long id) throws EntityNotFoundException {
-        return userRepository.getById(id);
+        return userRepository.getReferenceById(id);
     }
 
     @Override

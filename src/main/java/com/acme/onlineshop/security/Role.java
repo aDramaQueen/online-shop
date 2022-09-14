@@ -15,15 +15,16 @@ public enum Role {
      */
     USER("User"),
     /**
+     * Staff user is able to do everything a user can plus he can manipulate the offers/products
+     */
+    STAFF("Staff"),
+    /**
      * Admin user is able to do everything, without any restrictions
      */
     ADMIN("Administrator");
 
     public final String humanReadableName;
 
-    // ATTENTION: If you rename this Enum class, you also have to edit following HTML files
-    //      .../i3de-meter-communication/src/main/resources/templates/fragments/main-users-add.html
-    //      .../i3de-meter-communication/src/main/resources/templates/fragments/main-users-change.html
     Role(String humanReadableName) {
         this.humanReadableName = humanReadableName;
     }
@@ -45,7 +46,7 @@ public enum Role {
      * @see org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl
      */
     public static String getHierarchy() {
-        return ADMIN.getHierarchicalName() + " > " + USER.getHierarchicalName();
+        return ADMIN.getHierarchicalName() + " > " + STAFF.getHierarchicalName() + " > " + USER.getHierarchicalName();
     }
 
     public static List<String> getAllRoles() {

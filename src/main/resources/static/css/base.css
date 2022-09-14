@@ -1,0 +1,66 @@
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+#company-name {
+
+}
+
+#admin-header {
+
+}
+
+#user-header {
+    background-color: white;
+}
+
+#navbar {
+    background-color: whitesmoke;
+}
+
+#external-link-icons > .bi {
+    color: black;
+    font-size: 25px;
+}
+
+#external-link-icons > .bi:hover {
+    opacity: 0.7;
+}
+
+#translation-symbol {
+    width: 20px;
+    height: 20px;
+    fill: black;
+}
+
+#google-map {
+    height: 400px;
+    width: 100%;
+}
+
+.footer-button {
+    background-color: lightgrey;
+}
+
+.country-flag {
+    height: 25px;
+    width: 25px;
+}
+
+.add-category {
+    background-color: gainsboro;
+    border-radius: 15px;
+}
+
+.footer {
+    flex-shrink: 0;
+}

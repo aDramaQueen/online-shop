@@ -13,7 +13,8 @@ public enum Profile {
     PRODUCTION("Production", Tag.PRODUCTION),
     TEST("Test", Tag.TEST),
     H2("H2", Tag.H2),
-    HYPER_SQL("HyperSQL", Tag.HYPER_SQL);
+    HYPER_SQL("HyperSQL", Tag.HYPER_SQL),
+    DERBY("Apache Derby", Tag.DERBY);
 
     public static class Tag {
         public final static String DEVELOPMENT = "development";
@@ -21,6 +22,7 @@ public enum Profile {
         public final static String TEST = "test";
         public final static String H2 = "h2";
         public final static String HYPER_SQL = "hsql";
+        public final static String DERBY = "derby";
     }
 
     public final String prettyName, tag;

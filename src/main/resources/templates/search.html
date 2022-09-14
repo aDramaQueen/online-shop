@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <head>
+        <title>Search</title>
+        <meta th:replace="~{fragments/base.html :: base-head}"/>
+        <link th:rel="stylesheet" th:href="@{/css/search.css}"/>
+    </head>
+    <body>
+        <div th:replace="~{fragments/header :: user}"></div>
+        <main>
+            <span th:text="${'You searched: ' + searchText}">Search result</span>
+        </main>
+        <div th:replace="~{fragments/base.html :: base-javascript}"></div>
+    </body>
+</html>

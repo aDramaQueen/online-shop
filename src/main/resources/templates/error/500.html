@@ -17,7 +17,7 @@
 
         <p>Application has encountered an error. Please contact support on...</p>
 
-        <th:block th:if="${T(i3de.communication.Constants).DEBUG}">
+        <th:block th:if="${T(com.acme.onlineshop.Constants).DEBUG}">
             <blockquote>
                 <i>Note: Following exception only shows in debug mode, since you would never generate a page that displays a
                     Java exception to an end-user in production mode</i>
@@ -49,7 +49,7 @@
                 </div>
             </div>
         </th:block>
-        <th:block th:unless="${T(i3de.communication.Constants).DEBUG}">
+        <th:block th:unless="${T(com.acme.onlineshop.Constants).DEBUG}">
             <div th:if="${ex}">
                 <b>Cause:</b>
                 <span th:if="${ex}" th:text="${ex.message}"> </span>

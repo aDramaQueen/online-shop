@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <head>
+        <title>Online Shop - Categories</title>
+        <meta th:replace="~{fragments/base.html :: base-head}"/>
+        <link th:rel="stylesheet" th:href="@{/css/admin.css}"/>
+    </head>
+    <body>
+        <div th:replace="~{fragments/header :: admin}"></div>
+        <main>
+            <div class="accordion" id="categoriesAccordion">
+                <th:block th:each="category,iterStat : ${categories}">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingID" th:id="|flush-heading${category.name}|">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseID" th:data-bs-target="|#flush-collapse${category.name}|" aria-expanded="true" aria-controls="flush-collapseID" th:aria-controls="|flush-collapse${category.name}|" th:text="|${iterStat.index+1}. ${category.getName}|">
+                            Main Category Name
+                        </button>
+                    </h2>
+                    <div id="flush-collapseID" th:id="|flush-collapse${category.name}|" class="accordion-collapse collapse" aria-labelledby="flush-headingID" th:aria-labelledby="|flush-heading${category.name}|" data-bs-parent="#categoriesAccordion">
+                        <div class="accordion-body">
+                            <ol class="list-group">
+                                <li class="list-group-item list-group-item-dark d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold" th:text="${category.getName}">Category Name</div>
+                                        <span th:text="${category.getDescription}">Category Description</span>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">42</span>
+                                </li>
+                                <li class="list-group-item list-group-item-dark d-flex justify-content-between align-items-start">
+                                    <ol class="list-group list-group-numbered w-100">
+                                        <th:block th:each="subcategory : ${category.getSubCategories}">
+                                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                                            <div class="ms-2 me-auto">
+                                                <div class="fw-bold" th:text="${subcategory.getName}">Category Name</div>
+                                                <span th:text="${subcategory.getDescription}">Category Description</span>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">42</span>
+                                        </li>
+                                        </th:block>
+                                    </ol>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                </th:block>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingAddMainCategory">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseAddMainCategory" aria-expanded="true" aria-controls="flush-collapseAddMainCategory">
+                            Add new main category
+                        </button>
+                    </h2>
+                    <div id="flush-collapseAddMainCategory" class="accordion-collapse collapse" aria-labelledby="flush-headingAddMainCategory" data-bs-parent="#categoriesAccordion">
+                        <div class="p-2" th:include="~{fragments/category.html :: add-main-category}"></div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="flush-headingAddSubCategory">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseAddSubCategory" aria-expanded="true" aria-controls="flush-collapseAddSubCategory">
+                            Add new sub category
+                        </button>
+                    </h2>
+                    <div id="flush-collapseAddSubCategory" class="accordion-collapse collapse" aria-labelledby="flush-headingAddSubCategory" data-bs-parent="#categoriesAccordion">
+                        <div class="p-2" th:include="~{fragments/category.html :: add-sub-category (${categories})}"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <div th:replace="~{fragments/base.html :: base-javascript}"></div>
+    </body>
+</html>

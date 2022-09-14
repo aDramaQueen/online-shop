@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta th:replace="~{fragments/base.html :: base-head}"/>
+    <title>Category Form Templates</title>
+</head>
+<body>
+    <!--/* ============================================ Add category ============================================= */-->
+    <form th:fragment="add-category">
+        <div class="form-floating mb-2">
+            <input type="text" class="form-control" id="categoryInputName" placeholder="My category">
+            <label for="categoryInputName">Category Name</label>
+        </div>
+        <div class="form-floating">
+            <textarea class="form-control" id="floatingCommentTextarea" placeholder="My category is..." style="height: 100px"></textarea>
+            <label for="floatingCommentTextarea">Description</label>
+        </div>
+    </form>
+
+    <!--/* ========================================== Add main category ========================================== */-->
+    <form th:fragment="add-main-category">
+        <div class="container-fluid p-1 add-category">
+            <div class="row align-items-end w-100">
+                <div class="col-md-10 mb-2 pb-2 pb-md-0">
+                    <div class="pt-2" th:include="::add-category"></div>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button type="button" class="btn btn-outline-primary w-100">Add category</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!--/* =========================================== Add sub category ========================================== */-->
+    <form th:fragment="add-sub-category (mainCategories)">
+        <div class="container-fluid p-1 add-category">
+            <div class="row align-items-end w-100">
+                <div class="col-md-10 mb-2 pb-2 pb-md-0">
+                    <div class="mt-2" th:include="::add-category"></div>
+                    <div class="mt-2 form-floating">
+                        <select class="form-select" id="floatingSelect" aria-label="Floating label select example">
+                            <th:block th:each="category,iter : ${mainCategories}">
+                                <option value="#" th:value="|${iter.index+1}|" th:text="${category.getName}">Main Category Name</option>
+                            </th:block>
+                        </select>
+                        <label for="floatingSelect">Related main category</label>
+                    </div>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button type="button" class="btn btn-outline-primary w-100">Add category</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</body>
+</html>

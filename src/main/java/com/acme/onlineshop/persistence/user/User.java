@@ -1,5 +1,6 @@
 package com.acme.onlineshop.persistence.user;
 
+import com.acme.onlineshop.ApplicationConfiguration;
 import com.acme.onlineshop.security.PermissionFunction;
 import com.acme.onlineshop.security.PermissionOperation;
 import com.acme.onlineshop.security.Role;
@@ -15,17 +16,15 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.io.Serial;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * <p>ATTENTION: Do NOT change this class recklessly!!! It is heavily used by the template engine Thymeleafe.</p>
  * <p>Adding something is always possible. But if something is taken away or changed, the HTML code must always be
  * tested again!</p>
  */
-@Entity(name = "I3DE_USER")
+@Entity(name = "ONLINE_SHOP_USER")
 public class User implements UserDetails {
 
     @Serial
@@ -37,6 +36,7 @@ public class User implements UserDetails {
                 ID = %d,
                 Username = %s,
                 Password = %s,
+                Email = %s,
                 Enabled = %b,
                 Account expired = %b,
                 Account locked = %b,
@@ -57,6 +57,9 @@ public class User implements UserDetails {
     private String username;
     @NotEmpty(message = "Password is required")
     private String password;
+    @NotEmpty(message = "Email is required")
+    @Column(unique=true)
+    private String email;
     @Schema(description = "Indicates whether the user's account has expired. An expired account cannot be authenticated.")
     private boolean accountNonExpired;
     @Schema(description = "Indicates whether the user's credentials (password) has expired. Expired credentials prevent authentication.")
@@ -80,24 +83,13 @@ public class User implements UserDetails {
     @NotNull
     @Column(length = maxTokenSize)
     private String refreshToken;
+    @OneToOne(fetch = FetchType.LAZY)
+    private Profile profile;
 
-    public User(User user) {
-        this.userId = user.userId;
-        this.username = user.username;
-        this.password = user.password;
-        this.accountNonExpired = user.accountNonExpired;
-        this.credentialsNonExpired = user.credentialsNonExpired;
-        this.accountNonLocked = user.accountNonLocked;
-        this.enabled = user.enabled;
-        this.role = user.role;
-        this.permissions = user.permissions;
-        this.accessToken = user.accessToken;
-        this.refreshToken = user.refreshToken;
-    }
-
-    public User(String username, String password, boolean accountNonExpired, boolean credentialsNonExpired, boolean accountNonLocked, boolean enabled, Role role, Set<UserPermission> permissions, String accessToken, String refreshToken) {
+    public User(String username, String password, String email, boolean accountNonExpired, boolean credentialsNonExpired, boolean accountNonLocked, boolean enabled, Role role, Set<UserPermission> permissions, String accessToken, String refreshToken) {
         this.username = username;
         this.password = password;
+        this.email = email;
         this.accountNonExpired = accountNonExpired;
         this.credentialsNonExpired = credentialsNonExpired;
         this.accountNonLocked = accountNonLocked;
@@ -108,21 +100,17 @@ public class User implements UserDetails {
         this.refreshToken = refreshToken;
     }
 
-    public User(String userName, String password, Role role) {
-        this.username = userName;
-        this.password = password;
-        this.accountNonExpired = true;
-        this.credentialsNonExpired = true;
-        this.accountNonLocked = true;
-        this.enabled = true;
-        this.role = role;
-        permissions = new HashSet<>();
-        accessToken = "";
-        refreshToken = "";
+    public User(User user) {
+        this(user.username, user.password, user.email, user.accountNonExpired, user.credentialsNonExpired, user.accountNonLocked, user.enabled, user.role, user.permissions, user.accessToken, user.refreshToken);
+        this.userId = user.userId;
+    }
+
+    public User(String userName, String password, String email, Role role) {
+        this(userName, password, email, true, true, true, true, role, new HashSet<>(), "", "");
     }
 
     public User() {
-        permissions = new HashSet<>();
+        this("", "", "", Role.USER);
     }
 
     public long getUserId() {
@@ -149,6 +137,14 @@ public class User implements UserDetails {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     @Override
@@ -255,6 +251,18 @@ public class User implements UserDetails {
         return result;
     }
 
+    public Profile getProfile() {
+        return profile;
+    }
+
+    public void setProfile(Profile profile) {
+        this.profile = profile;
+    }
+
+    public Path getMediaDirectory() {
+        return Path.of(ApplicationConfiguration.getMediaRootDirectory().toString(), this.username.toLowerCase(Locale.getDefault()));
+    }
+
     public void addPermission(PermissionOperation function, PermissionFunction operation) {
         for(UserPermission permission: permissions) {
             if(permission.getOperation() == function) {
@@ -313,6 +321,6 @@ public class User implements UserDetails {
     @Override
     public String toString() {
         String jwt = (this.accessToken.isBlank()) ? "- Empty -" : this.accessToken;
-        return identifier.formatted(userId, username, password, enabled, !accountNonExpired, !accountNonLocked, !credentialsNonExpired, role, permissions, jwt);
+        return identifier.formatted(userId, username, password, email, enabled, !accountNonExpired, !accountNonLocked, !credentialsNonExpired, role, permissions, jwt);
     }
 }

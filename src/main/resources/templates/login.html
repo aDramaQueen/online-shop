@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <head>
+        <title>Login</title>
+        <meta th:replace="~{fragments/base.html :: base-head}"/>
+        <link th:rel="stylesheet" th:href="@{/css/login.css}"/>
+    </head>
+    <body>
+        <div class="body">
+            <div class="sliding_login">
+                <div class="login-btn splits">
+                    <p>Already a user?</p>
+                    <button class="active" id="login-section">Login</button>
+                </div>
+                <div class="rgstr-btn splits">
+                    <p>Don't have an account?</p>
+                    <button id="register-section">Register</button>
+                </div>
+                <div class="wrapper" id="sliding_window">
+                    <div th:if="${param.error}" id="error-message">
+                        <div th:if="${session.SPRING_SECURITY_LAST_EXCEPTION}" class="alert alert-danger">[[${session.SPRING_SECURITY_LAST_EXCEPTION.message}]]</div>
+                        <div th:unless="${session.SPRING_SECURITY_LAST_EXCEPTION}" class="alert alert-danger">Invalid Username or Password</div>
+                    </div>
+                    <form th:id="login" tabindex="500" th:method="POST" th:action="@{/login}">
+                        <h3>Login</h3>
+                        <div class="mail">
+                            <input type="text" name="username" id="name_login" required>
+                            <label for="name_login">Username</label>
+                        </div>
+                        <div class="passwd">
+                            <input type="password" name="password" id="password_login" required>
+                            <label for="password_login">Password</label>
+                        </div>
+                        <div class="submit">
+                            <button class="dark">Login</button>
+                        </div>
+                    </form>
+                    <form th:id="register" tabindex="502" th:method="POST" th:action="@{/register}" th:object="${user}">
+                        <h3>Register</h3>
+<!--                        <div class="name">-->
+<!--                            <input type="text" th:field="*{name_register}" id="name" required>-->
+<!--                            <label for="name">Full Name</label>-->
+<!--                        </div>-->
+                        <div class="mail">
+                            <input type="email" th:field="*{email}" id="mail" required>
+                            <label for="mail">Mail</label>
+                        </div>
+                        <div class="uid">
+                            <input type="text" th:field="*{username}" id="name_register" required>
+                            <label for="name_register">User Name</label>
+                        </div>
+                        <div class="passwd">
+                            <input type="password" th:field="*{password}" id="password_register" required>
+                            <label for="password_register">Password</label>
+                        </div>
+                        <div class="submit">
+                            <button class="dark">Register</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <script th:src="@{/js/login.js}"></script>
+    </body>
+</html>

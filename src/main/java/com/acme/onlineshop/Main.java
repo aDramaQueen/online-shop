@@ -8,6 +8,7 @@ import com.acme.onlineshop.persistence.configuration.ApplicationConfigRepository
 import com.acme.onlineshop.persistence.user.User;
 import com.acme.onlineshop.security.Role;
 import com.acme.onlineshop.service.DatabaseTableService;
+import com.acme.onlineshop.service.ImageService;
 import com.acme.onlineshop.service.SecurityService;
 import com.acme.onlineshop.service.UserService;
 import com.acme.onlineshop.utils.FileLoader;
@@ -48,7 +49,7 @@ import java.util.Set;
  *
  * @see <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config">Spring Boot - External Configuration</a>
  * @author Richard Saeuberlich
- * @version 1.7
+ * @version 1.0
  */
 @ServletComponentScan
 @SpringBootApplication
@@ -75,8 +76,8 @@ public class Main {
 		if (Constants.DELETE_OLD_LOGS) {
 			cleanOldLoggingFiles();
 		}
+
 		SpringApplicationBuilder builder = new SpringApplicationBuilder(Main.class).web(WebApplicationType.SERVLET);
-		builder.headless(Constants.HEADLESS);
 		SpringApplication app = builder.build();
 
 		//Write PID (Process ID) to file in root directory
@@ -148,84 +149,6 @@ public class Main {
 		exit(0);
 	}
 
-	@Bean
-	@Order(0)
-	CommandLineRunner setupApplication(@Value("${spring.profiles.active:}")String activeProfile, @Value("${spring.profiles.default:}")String defaultProfile, @Value("${server.additionalPort:}")String additionalPort, ServerProperties serverProperties) {
-		return args -> {
-			String profile = (activeProfile.isEmpty()) ? defaultProfile : activeProfile;
-			if(!profile.contains(com.acme.onlineshop.utils.Profile.TEST.tag)) {
-				rootURL = IPLoader.getRootURL(serverProperties);
-			}
-			if(additionalPort.isEmpty()) {
-				Main.additionalPort = -1;
-			} else {
-				Main.additionalPort = Integer.parseInt(additionalPort);
-			}
-		};
-	}
-
-	@Bean
-	@Order(1)
-	CommandLineRunner setupConfiguration(ApplicationConfigRepository applicationConfigRepository, @Value("${jwt.key}")String jwtKey) {
-		return args -> ApplicationConfiguration.initialize(applicationConfigRepository, jwtKey);
-	}
-
-	@Bean
-	@Profile(com.acme.onlineshop.utils.Profile.Tag.DEVELOPMENT)
-	@Order(2)
-	CommandLineRunner startUpDevelopment(@Value("${spring.jpa.hibernate.ddl-auto:none}") String databasesHandling, DatabaseTableService databaseTableService, UserService userService, SecurityService securityService) {
-		cleanTables(databasesHandling, databaseTableService);
-		profile = com.acme.onlineshop.utils.Profile.DEVELOPMENT;
-		checkForAdminUser(userService);
-		return args -> {
-			System.out.println("\n---------------------------------------------------------------------------------\n");
-			System.out.printf("Current profile: %s\n", profile.prettyName);
-			System.out.printf("Homepage: %s\n", rootURL);
-			System.out.printf("All endpoints with OpenAPI 3.0: %s%s\n", rootURL, URL.OPEN_API_WEB.url);
-			if(Constants.WEB_SECURITY) {
-				String refresh = securityService.generateNewRefreshToken(Constants.DEFAULT_ADMIN_USERNAME, Constants.DEFAULT_ADMIN_PASSWORD, 1);
-				System.out.printf("New Refresh Token: %s\n", refresh);
-				System.out.printf("New Access Token: %s\n", securityService.generateNewAccessToken(refresh, 1));
-			}
-			System.out.println("\n---------------------------------------------------------------------------------\n");
-		};
-	}
-
-	@Bean
-	@Profile(com.acme.onlineshop.utils.Profile.Tag.PRODUCTION)
-	@Order(3)
-	CommandLineRunner startUpProduction(UserService userService, DatabaseTableService databaseTableService, SecurityService securityService) {
-		profile = com.acme.onlineshop.utils.Profile.PRODUCTION;
-		checkForAdminUser(userService);
-		return args -> {
-			System.out.println("\n---------------------------------------------------------------------------------\n");
-			System.out.printf("Homepage: %s\n", rootURL);
-			System.out.printf("All endpoints with OpenAPI 3.0: %s%s\n", rootURL, URL.OPEN_API_WEB.url);
-			System.out.println("\n---------------------------------------------------------------------------------\n");
-		};
-	}
-
-	@Bean
-	@Profile(com.acme.onlineshop.utils.Profile.Tag.TEST)
-	@Order(4)
-	CommandLineRunner startUpTest() {
-		profile = com.acme.onlineshop.utils.Profile.TEST;
-		return args -> {};
-	}
-
-	/**
-	 * If no admin user exists, create standard admin user.
-	 *
-	 * @param userService The service that adds new users
-	 */
-	private static void checkForAdminUser(UserService userService) {
-		if(!userService.atLeastOneAdmin()) {
-			User adminUser = new User(Constants.DEFAULT_ADMIN_USERNAME, Constants.DEFAULT_ADMIN_PASSWORD, Role.ADMIN);
-			userService.addNewUser(adminUser, false);
-			LOGGER.info("Created standard admin user");
-		}
-	}
-
 	/**
 	 * <p>Deletes logging directory: ./logs</p><br>
 	 *
@@ -242,36 +165,5 @@ public class Main {
 				exc.printStackTrace();
 			}
 		}
-	}
-
-	/**
-	 * Deletes special <i>"Liquibase"</i> tracking tables (@see <a href="https://docs.liquibase.com/concepts/tracking-tables/tracking-tables.html">Liquibase documentation: Tracking Table</a>).
-	 *
-	 * @param databasesHandling {@link String} property value, which indicates that tables should be dropped, or not
-	 * @param databaseTableService Service which actually deletes the tables
-	 * @see DatabaseTableService
-	 */
-	private static void cleanTables(String databasesHandling, DatabaseTableService databaseTableService) {
-		if(databasesHandling.equals("create-drop")) {
-			String[] liquibaseTables = new String[]{"DATABASECHANGELOG", "DATABASECHANGELOGLOCK"};
-			int deletedTables = databaseTableService.dropTableIfExists(liquibaseTables);
-			LOGGER.warn("Deleted %d table(s).".formatted(deletedTables));
-		}
-	}
-
-	private static void printLoggerStatus() {
-		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-		System.out.println("\n----------------------------------");
-		for (ch.qos.logback.classic.Logger logger : context.getLoggerList()) {
-			Iterator<Appender<ILoggingEvent>> iterator = logger.iteratorForAppenders();
-			Set<String> result = new HashSet<>();
-			while (iterator.hasNext()) {
-				result.add(iterator.next().getName());
-			}
-			if(!result.isEmpty()) {
-				System.out.printf("%s%nAPPENDERS: %s%n----------------------------------%n", logger, String.join(", ", result));
-			}
-		}
-		System.out.println();
 	}
 }

@@ -1,14 +1,14 @@
 <!--/* Thymeleaf tutorial: https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html */-->
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
     <head>
         <meta charset="UTF-8">
         <title>Base Templates</title>
     </head>
     <body>
 
-    <!--/* =================================== CSS: Bootstrap, Bootstrap Icons =================================== */-->
-    <div th:fragment="base-header" th:remove="tag">
+    <!--/* =============================== CSS: Bootstrap, Bootstrap Icons, Header =============================== */-->
+    <div th:fragment="base-head">
         <meta charset="UTF-8">
 
         <link th:rel="stylesheet" th:href="@{/css/bootstrap/bootstrap.min.css}"/>
@@ -16,10 +16,69 @@
         <link th:rel="stylesheet" th:href="@{/css/base.css}"/>
     </div>
 
-    <!--/* ==================================== JavaScript: Sidebar, Bootstrap =================================== */-->
-    <div th:fragment="base-javascripts" th:remove="tag">
+    <!--/* ========================================= JavaScript: Bootstrap ======================================= */-->
+    <div th:fragment="base-javascript">
         <script th:src="@{/js/bootstrap/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/js/initGoogleMaps.js}"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&v=weekly"></script>
     </div>
+
+    <!--/* ================================================ Footer =============================================== */-->
+    <footer class="container mt-1" th:fragment="footer">
+        <div class="row">
+            <div class="d-flex col-md-4 justify-content-evenly border-end">
+                <a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).HOME.url})}">Home</a>
+                <a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).ABOUT.url})}">About</a>
+                <a href="#" th:href="@{{path}(path=${T(com.acme.onlineshop.web.URL).CONTACT.url})}">Contact</a>
+            </div>
+            <div class="d-flex col-md-4 justify-content-evenly" id="external-link-icons">
+                <a href="https://www.facebook.com" class="bi bi-facebook"></a>
+                <a href="https://twitter.com" class="bi bi-twitter"></a>
+                <a href="https://www.twitch.tv/" class="bi bi-twitch"></a>
+                <a href="https://www.youtube.com/" class="bi bi-youtube"></a>
+                <a href="#" class="bi bi-rss-fill"></a>
+            </div>
+            <div class="d-flex col-md-4 justify-content-evenly border-start">
+                <div class="btn-group dropup">
+                    <button type="button" class="btn dropdown-toggle footer-button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" id="translation-symbol">
+                            <path d="M7.41 9l2.24 2.24-.83 2L6 10.4l-3.3 3.3-1.4-1.42L4.58 9l-.88-.88c-.53-.53-1-1.3-1.3-2.12h2.2c.15.28.33.53.51.7l.89.9.88-.88C7.48 6.1 8 4.84 8 4H0V2h5V0h2v2h5v2h-2c0 1.37-.74 3.15-1.7 4.12L7.4 9zm3.84 8L10 20H8l5-12h2l5 12h-2l-1.25-3h-5.5zm.83-2h3.84L14 10.4 12.08 15z"></path>
+                        </svg>
+                        Language
+                    </button>
+                    <ul class="dropdown-menu">
+                        <th:block th:each="language : ${T(com.acme.onlineshop.Language).values()}">
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center" href="#" th:value="${language.iso_639_1_code}">
+                                <object class="country-flag me-2" type="image/svg+xml" th:if="${language.iso_639_1_code=='en'}" th:data="@{/flags/flags/4x3/gb.svg}" role="img" aria-label="Placeholder: No-Image">Country Flag</object>
+                                <object class="country-flag me-2" type="image/svg+xml" th:unless="${language.iso_639_1_code=='en'}" th:data="@{/flags/flags/4x3/{country}.svg(country=${language.iso_639_1_code})}" role="img" aria-label="Placeholder: No-Image">Country Flag</object>
+                                <span th:text="${language.prettyName}">Language</span>
+                            </a>
+                        </li>
+                        </th:block>
+                    </ul>
+                </div>
+                <button type="button" class="btn footer-button" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="initMap()">
+                    <i class="bi bi-pin"></i>
+                    Location
+                </button>
+                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">ACME Inc. Location</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body" id="google-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex col-md-12 justify-content-center">
+                Copyright © 2022 ACME Inc.
+            </div>
+        </div>
+    </footer>
 
     </body>
 </html>

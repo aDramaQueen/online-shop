@@ -8,6 +8,7 @@ import com.acme.onlineshop.exception.RoleChangeException;
 import com.acme.onlineshop.persistence.user.User;
 import com.acme.onlineshop.persistence.user.UserPermissionConverter;
 import com.acme.onlineshop.security.PermissionOperation;
+import com.acme.onlineshop.service.ImageService;
 import com.acme.onlineshop.service.UserService;
 import com.acme.onlineshop.web.RESTVersionURL;
 import com.acme.onlineshop.web.URL;
@@ -15,35 +16,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 
+@Controller
 public class WebController {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(WebController.class);
-
-    private final static String thymeleafSystemInfoEndPoint = URL.Path.REST_SYSTEM + RESTVersionURL.URL.V_01 +"/current-info";
+    public final static String REDIRECT_LOGIN_SESSION_ATTRIBUTE = "redirect_login";
     private final static String thymeleafOldPasswordError = "oldPasswordError";
     private final static String thymeleafPasswordStrengthError = "passwordStrengthError";
 
     private final UserService userService;
+    private final ImageService imageService;
 
     @Autowired
-    public WebController(UserService userService) {
+    public WebController(UserService userService, ImageService imageService) {
         this.userService = userService;
+        this.imageService = imageService;
     }
 
     /**
@@ -100,20 +108,41 @@ public class WebController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
     }
 
-    // ------------------------------------------------------ Home -----------------------------------------------------
-
     @GetMapping(URL.Path.INDEX)
     public String homePage(Model model, HttpSession session) {
-        updateSession(session);
         return URL.INDEX.html;
     }
 
-    // ----------------------------------------------------- Login -----------------------------------------------------
+    @GetMapping(URL.Path.ABOUT)
+    public String aboutPage(Model model, HttpSession session) {
+        return URL.ABOUT.html;
+    }
 
-    @RequestMapping(URL.Path.LOGIN)
-    public String login(Model model, HttpSession session) {
-        //Do your thing...
+    @GetMapping(URL.Path.CONTACT)
+    public String contactPage(Model model, HttpSession session) {
+        return URL.CONTACT.html;
+    }
+
+    // ------------------------------------------------- Login/Register ------------------------------------------------
+
+    @GetMapping(URL.Path.LOGIN)
+    public String login(Model model, HttpServletRequest request, HttpSession session) {
+        session.setAttribute(REDIRECT_LOGIN_SESSION_ATTRIBUTE, request.getHeader(HttpHeaders.REFERER));
+        if(model.getAttribute("user") == null) {
+            model.addAttribute("user", new User());
+        }
         return URL.LOGIN.html;
+    }
+
+    @PostMapping(URL.Path.REGISTER)
+    public String register(User user, Model model, HttpServletRequest request, HttpSession session) {
+        try {
+            userService.addNewUser(user, !Constants.DEBUG);
+        } catch (Exception exc) {
+            model.addAttribute("user", new User());
+            return login(model, request, session);
+        }
+        return URL.REGISTER_SUCCESS.html;
     }
 
     // ------------------------------------------------------ User -----------------------------------------------------
@@ -190,6 +219,8 @@ public class WebController {
                     for(String error: exc.getErrorMessages()) {
                         result.addError(new FieldError("user", "password", error));
                     }
+                } catch (IOException exc) {
+                    throw new RuntimeException(exc);
                 }
             }
         }
@@ -202,9 +233,17 @@ public class WebController {
         return ResponseEntity.status(HttpStatus.OK).body("OK");
     }
 
-    // ------------------------------------------------ Session settings -----------------------------------------------
+    // -------------------------------------------- User - Profile/Settings --------------------------------------------
 
-    private void updateSession(HttpSession session) {
-        System.out.println("SESSION: "+session);
+    @GetMapping(URL.Path.PROFILE)
+    public String profile(Model model, HttpSession session) {
+        //Do your thing...
+        return URL.PROFILE.html;
+    }
+
+    @GetMapping(URL.Path.SETTINGS)
+    public String settings(Model model, HttpSession session) {
+        //Do your thing...
+        return URL.SETTINGS.html;
     }
 }

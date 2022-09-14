@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+  <head>
+      <meta charset="UTF-8">
+      <title>Upload File</title>
+  </head>
+  <body>
+    <div th:if="${message}">
+      <h2 th:text="${message}"/>
+    </div>
+
+    <div>
+      <form method="POST" enctype="multipart/form-data" th:action="@{/upload/image}">
+        <table>
+          <tr>
+            <td>File to upload:</td>
+            <td><input type="file" name="file" /></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><input type="submit" value="Upload" /></td>
+          </tr>
+        </table>
+      </form>
+    </div>
+
+    <div>
+      <ul>
+        <li th:each="image : ${images}">
+          <a th:href="${image}" th:text="${image}" />
+        </li>
+      </ul>
+    </div>
+
+  </body>
+</html>
